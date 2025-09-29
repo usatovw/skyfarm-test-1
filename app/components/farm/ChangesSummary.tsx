@@ -13,13 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChangesDraft, ContainerStatus } from "@/types/farming";
 import { mockCrops } from "@/data/mockData";
-import { 
-  Check, 
-  AlertTriangle, 
-  Sprout, 
-  Trash2, 
+import {
+  Check,
+  AlertTriangle,
+  Sprout,
+  Trash2,
   Calendar,
   Target,
   Clock
@@ -29,27 +30,32 @@ interface ChangesSummaryProps {
   isOpen: boolean;
   onClose: () => void;
   changes: ChangesDraft;
-  onApply: () => void;
+  onApply: (selectedActionIds: string[]) => void;
   containerData: ContainerStatus;
 }
 
-export default function ChangesSummary({ 
-  isOpen, 
-  onClose, 
-  changes, 
+export default function ChangesSummary({
+  isOpen,
+  onClose,
+  changes,
   onApply,
-  containerData 
+  containerData
 }: ChangesSummaryProps) {
   const [isApplying, setIsApplying] = useState(false);
+  const [selectedActions, setSelectedActions] = useState<Set<string>>(
+    new Set(changes.plannedActions.map(a => a.id))
+  );
 
   const handleApply = async () => {
+    if (selectedCount === 0) return;
+
     setIsApplying(true);
     try {
       console.log('🚀 Начинаем применение изменений...');
       // Имитация задержки применения с более реалистичным временем
       await new Promise(resolve => setTimeout(resolve, 3000));
       console.log('✅ Изменения успешно применены!');
-      onApply();
+      onApply(Array.from(selectedActions));
     } catch (error) {
       console.error('❌ Ошибка при применении изменений:', error);
       // TODO: Показать toast с ошибкой
@@ -179,19 +185,34 @@ export default function ChangesSummary({
     return allTrayIds;
   };
 
+  const toggleAction = (actionId: string) => {
+    setSelectedActions(prev => {
+      const next = new Set(prev);
+      if (next.has(actionId)) {
+        next.delete(actionId);
+      } else {
+        next.add(actionId);
+      }
+      return next;
+    });
+  };
+
   const calculateAffectedTrays = () => {
     let totalTrays = 0;
-    
+
     changes.plannedActions.forEach(action => {
-      const allTrayIds = getAllAffectedTrays(action);
-      totalTrays += allTrayIds.length;
+      if (selectedActions.has(action.id)) {
+        const allTrayIds = getAllAffectedTrays(action);
+        totalTrays += allTrayIds.length;
+      }
     });
-    
+
     return totalTrays;
   };
 
   const affectedTraysCount = calculateAffectedTrays();
-  const estimatedDuration = changes.plannedActions.length * 5; // 5 минут на действие
+  const selectedCount = selectedActions.size;
+  const estimatedDuration = selectedCount * 5; // 5 минут на действие
 
   if (changes.plannedActions.length === 0) {
     return null;
@@ -220,7 +241,9 @@ export default function ChangesSummary({
             <CardContent className="space-y-3">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-2xl font-bold text-primary">{changes.plannedActions.length}</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {selectedCount}/{changes.plannedActions.length}
+                  </p>
                   <p className="text-sm text-muted-foreground">Действий</p>
                 </div>
                 <div>
@@ -247,10 +270,23 @@ export default function ChangesSummary({
                   const allAffectedTrays = getAllAffectedTrays(action);
                   const trayDetails = getTrayDetails(allAffectedTrays);
                   
+                  const isSelected = selectedActions.has(action.id);
+
                   return (
-                    <div key={action.id} className="border rounded-lg overflow-hidden">
+                    <div
+                      key={action.id}
+                      className={`border rounded-lg overflow-hidden transition-opacity ${
+                        !isSelected ? 'opacity-50' : ''
+                      }`}
+                    >
                       {/* Заголовок действия */}
                       <div className="flex items-start gap-3 p-3 bg-muted/30">
+                        <div className="flex-shrink-0">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleAction(action.id)}
+                          />
+                        </div>
                         <div className="flex-shrink-0 mt-0.5">
                           {getActionIcon(action.type)}
                         </div>
@@ -352,15 +388,19 @@ export default function ChangesSummary({
         {/* Действия */}
         <div className="flex items-center justify-between pt-4 border-t bg-background sticky bottom-0">
           <div className="text-sm text-muted-foreground">
-            Изменения будут применены ко всей системе
+            {selectedCount === 0 ? (
+              <span className="text-orange-600">Выберите хотя бы одно действие</span>
+            ) : (
+              <span>Применить {selectedCount} {selectedCount === 1 ? 'действие' : selectedCount < 5 ? 'действия' : 'действий'}</span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={onClose} disabled={isApplying}>
               Отмена
             </Button>
-            <Button 
+            <Button
               onClick={handleApply}
-              disabled={isApplying}
+              disabled={isApplying || selectedCount === 0}
               className="min-w-[120px]"
             >
               {isApplying ? (
