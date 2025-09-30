@@ -313,7 +313,7 @@ export function ContainerView({
           onConfirm={handleMassStopConfirm}
           targetIds={pendingStopAction.selectedRackIds}
           targetType="rack"
-          containerData={container}
+          containerData={container as any}
         />
       )}
 

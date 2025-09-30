@@ -130,9 +130,9 @@ export function FarmManager() {
     const updatedContainer = JSON.parse(JSON.stringify(container));
 
     affectedTrays.forEach(trayId => {
-      updatedContainer.rows.forEach(row => {
-        row.racks.forEach(rack => {
-          const tray = rack.trays.find(t => t.id === trayId);
+      updatedContainer.rows.forEach((row: any) => {
+        row.racks.forEach((rack: any) => {
+          const tray = rack.trays.find((t: any) => t.id === trayId);
           if (tray && tray.status === 'empty') {
             tray.status = 'planned';
             tray.crop = {
@@ -183,7 +183,7 @@ export function FarmManager() {
         // Получаем все пустые поддоны из выбранных стоек
         const affectedTrays: string[] = [];
         container.rows.forEach(row => {
-          row.racks.forEach(rack => {
+          row.racks.forEach((rack: any) => {
             if (targetIds.includes(rack.id)) {
               rack.trays.forEach(tray => {
                 if (tray.status === 'empty') {
@@ -225,9 +225,9 @@ export function FarmManager() {
 
     selectedActions.forEach(action => {
       action.affectedTrays.forEach(trayId => {
-        updatedContainer.rows.forEach(row => {
-          row.racks.forEach(rack => {
-            const tray = rack.trays.find(t => t.id === trayId);
+        updatedContainer.rows.forEach((row: any) => {
+          row.racks.forEach((rack: any) => {
+            const tray = rack.trays.find((t: any) => t.id === trayId);
             if (!tray) return;
 
             switch (action.type) {
@@ -440,9 +440,9 @@ export function FarmManager() {
 
     let changedCount = 0;
     affectedTrays.forEach(trayId => {
-      updatedContainer.rows.forEach(row => {
-        row.racks.forEach(rack => {
-          const tray = rack.trays.find(t => t.id === trayId);
+      updatedContainer.rows.forEach((row: any) => {
+        row.racks.forEach((rack: any) => {
+          const tray = rack.trays.find((t: any) => t.id === trayId);
           if (tray && tray.status === 'growing') {
             console.log('🛑 Меняем статус поддона', trayId, 'с growing на stop_pending');
             tray.status = 'stop_pending';
@@ -502,7 +502,7 @@ export function FarmManager() {
     targetIds.forEach(targetId => {
       if (targetType === 'rack') {
         // Очистка всех запланированных поддонов в стойке
-        updatedContainer.rows.forEach(row => {
+        updatedContainer.rows.forEach((row: any) => {
           const rack = row.racks.find(r => r.id === targetId);
           if (rack) {
             rack.trays.forEach(tray => {
@@ -515,8 +515,8 @@ export function FarmManager() {
         });
       } else if (targetType === 'tray') {
         // Очистка конкретного поддона
-        updatedContainer.rows.forEach(row => {
-          row.racks.forEach(rack => {
+        updatedContainer.rows.forEach((row: any) => {
+          row.racks.forEach((rack: any) => {
             const tray = rack.trays.find(t => t.id === targetId);
             if (tray && tray.status === 'planned') {
               tray.status = 'empty';
@@ -536,7 +536,7 @@ export function FarmManager() {
     targetIds.forEach(targetId => {
       if (targetType === 'rack') {
         // Отмена прекращения для всех поддонов в стойке
-        updatedContainer.rows.forEach(row => {
+        updatedContainer.rows.forEach((row: any) => {
           const rack = row.racks.find(r => r.id === targetId);
           if (rack) {
             rack.trays.forEach(tray => {
@@ -548,8 +548,8 @@ export function FarmManager() {
         });
       } else if (targetType === 'tray') {
         // Отмена прекращения для конкретного поддона
-        updatedContainer.rows.forEach(row => {
-          row.racks.forEach(rack => {
+        updatedContainer.rows.forEach((row: any) => {
+          row.racks.forEach((rack: any) => {
             const tray = rack.trays.find(t => t.id === targetId);
             if (tray && tray.status === 'stop_pending') {
               tray.status = 'growing';

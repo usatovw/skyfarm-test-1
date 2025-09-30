@@ -54,7 +54,7 @@ export function RackCard({ rack, isSelected, mode, onShortPress, onLongPress }: 
       {/* Мини-индикаторы поддонов */}
       <div className="flex gap-1 mt-2 flex-wrap">
         {rack.trays.map((tray) => {
-          const crop = tray.crop ? crops.find(c => c.id === tray.crop.cropId) : null;
+          const crop = tray.crop ? crops.find(c => c.id === tray.crop!.cropId) : null;
           const showIcon = tray.status === 'growing' && crop;
 
           return (

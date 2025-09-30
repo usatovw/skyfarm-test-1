@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Check, Sprout, Scissors, Trash2, StopCircle, Undo2 } from 'lucide-react';
 
-interface ContextMenuItem {
+export interface ContextMenuItem {
   id: string;
   label: string;
   icon: React.ReactNode;
