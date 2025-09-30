@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -42,9 +42,15 @@ export default function ChangesSummary({
   containerData
 }: ChangesSummaryProps) {
   const [isApplying, setIsApplying] = useState(false);
-  const [selectedActions, setSelectedActions] = useState<Set<string>>(
-    new Set(changes.plannedActions.map(a => a.id))
-  );
+  const [selectedActions, setSelectedActions] = useState<Set<string>>(new Set());
+
+  // Инициализируем выбранные действия только при первом открытии модалки
+  useEffect(() => {
+    if (isOpen) {
+      const actionIds = changes.plannedActions.map(a => a.id);
+      setSelectedActions(new Set(actionIds));
+    }
+  }, [isOpen]); // УБИРАЕМ зависимость от changes.plannedActions!
 
   const handleApply = async () => {
     if (selectedCount === 0) return;
@@ -220,7 +226,7 @@ export default function ChangesSummary({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] !max-w-[1400px] max-h-[90vh] overflow-hidden" style={{ width: '95vw', maxWidth: '1400px' }}>
+      <DialogContent className="w-[95vw] !max-w-[1400px] max-h-[90vh] overflow-y-auto" style={{ width: '95vw', maxWidth: '1400px' }}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Check className="h-5 w-5" />
@@ -232,7 +238,7 @@ export default function ChangesSummary({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 flex flex-col" style={{ maxHeight: '70vh' }}>
+        <div className="space-y-4 flex flex-col overflow-y-auto" style={{ maxHeight: '70vh' }}>
           {/* Сводка */}
           <Card className="flex-shrink-0">
             <CardHeader>
@@ -261,10 +267,35 @@ export default function ChangesSummary({
           {/* Список действий */}
           <Card className="flex-1 min-h-0">
             <CardHeader>
-              <CardTitle className="text-base">Планируемые действия</CardTitle>
+              <CardTitle className="text-base flex items-center justify-between">
+                Планируемые действия
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">
+                    {selectedCount} из {changes.plannedActions.length} выбрано
+                  </Badge>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7 px-2"
+                      onClick={() => setSelectedActions(new Set(changes.plannedActions.map(a => a.id)))}
+                    >
+                      Все
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7 px-2"
+                      onClick={() => setSelectedActions(new Set())}
+                    >
+                      Нет
+                    </Button>
+                  </div>
+                </div>
+              </CardTitle>
             </CardHeader>
             <CardContent className="h-full">
-              <div className="space-y-4 h-full overflow-y-auto" style={{ maxHeight: '400px' }}>
+              <div className="space-y-4 h-full overflow-y-auto" style={{ maxHeight: '50vh' }}>
                 {changes.plannedActions.map((action, index) => {
                   const crop = action.cropId ? mockCrops.find(c => c.id === action.cropId) : null;
                   const allAffectedTrays = getAllAffectedTrays(action);
@@ -275,16 +306,22 @@ export default function ChangesSummary({
                   return (
                     <div
                       key={action.id}
-                      className={`border rounded-lg overflow-hidden transition-opacity ${
-                        !isSelected ? 'opacity-50' : ''
+                      className={`border rounded-lg overflow-hidden transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-primary bg-background shadow-sm'
+                          : 'border-muted bg-muted/10 hover:bg-muted/20'
                       }`}
+                      onClick={() => toggleAction(action.id)}
                     >
                       {/* Заголовок действия */}
-                      <div className="flex items-start gap-3 p-3 bg-muted/30">
-                        <div className="flex-shrink-0">
+                      <div className={`flex items-start gap-3 p-3 transition-colors ${
+                        isSelected ? 'bg-muted/30' : 'bg-muted/10'
+                      }`}>
+                        <div className="flex-shrink-0 mr-3">
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() => toggleAction(action.id)}
+                            className="w-5 h-5 border-2 border-gray-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                           />
                         </div>
                         <div className="flex-shrink-0 mt-0.5">
@@ -292,7 +329,9 @@ export default function ChangesSummary({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-foreground">
+                            <span className={`font-medium transition-colors ${
+                              isSelected ? 'text-foreground' : 'text-muted-foreground'
+                            }`}>
                               {getActionLabel(action.type)}
                             </span>
                             {crop && (
@@ -348,8 +387,12 @@ export default function ChangesSummary({
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Важно:</strong> После применения изменений автоматически запустятся 
+              <strong>Важно:</strong> После применения изменений автоматически запустятся
               процессы полива, освещения и климат-контроля. Отменить изменения будет невозможно.
+              <br />
+              <span className="text-muted-foreground text-xs mt-1 block">
+                💡 Снимите галки с действий, которые не нужно выполнять. Все действия остаются видимыми для повторного выбора.
+              </span>
             </AlertDescription>
           </Alert>
 

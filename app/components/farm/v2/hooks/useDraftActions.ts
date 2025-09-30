@@ -29,12 +29,67 @@ export function useDraftActions() {
     return { success: true, applied };
   }, [actions, clearActions]);
 
+  // Методы для конкретных действий
+  const harvestReady = useCallback((targetIds: string[], targetType: 'rack' | 'tray') => {
+    // Определяем затронутые поддоны
+    const affectedTrays = targetType === 'tray' ? targetIds : [];
+    // Если targetType === 'rack', affectedTrays будут вычислены в FarmManager
+
+    addAction({
+      type: 'harvest',
+      targetType,
+      targetIds,
+      affectedTrays
+    });
+  }, [addAction]);
+
+  const stopGrowing = useCallback((targetIds: string[], targetType: 'rack' | 'tray') => {
+    // Определяем затронутые поддоны
+    const affectedTrays = targetType === 'tray' ? targetIds : [];
+    // Если targetType === 'rack', affectedTrays будут вычислены в FarmManager
+
+    addAction({
+      type: 'stop_growing',
+      targetType,
+      targetIds,
+      affectedTrays
+    });
+  }, [addAction]);
+
+  const clearPlanned = useCallback((targetIds: string[], targetType: 'rack' | 'tray') => {
+    // Определяем затронутые поддоны
+    const affectedTrays = targetType === 'tray' ? targetIds : [];
+
+    addAction({
+      type: 'clear',
+      targetType,
+      targetIds,
+      affectedTrays
+    });
+  }, [addAction]);
+
+  const cancelStop = useCallback((targetIds: string[], targetType: 'rack' | 'tray') => {
+    // Определяем затронутые поддоны
+    const affectedTrays = targetType === 'tray' ? targetIds : [];
+
+    addAction({
+      type: 'cancel_stop',
+      targetType,
+      targetIds,
+      affectedTrays
+    });
+  }, [addAction]);
+
   return {
     actions,
     addAction,
     removeAction,
     clearActions,
     applyActions,
+    harvestReady,
+    stopGrowing,
+    clearPlanned,
+    cancelStop,
     hasActions: actions.length > 0
   };
 }

@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { AlertCircle, Leaf } from 'lucide-react';
 import { useLongPress } from '../hooks/useLongPress';
 import { cn } from '@/lib/utils';
+import { crops } from '@/data/cropsData';
 
 interface RackCardProps {
   rack: Rack;
@@ -51,17 +52,27 @@ export function RackCard({ rack, isSelected, mode, onShortPress, onLongPress }: 
       <div className="text-sm text-muted-foreground mb-2">{rack.occupiedTrays}/7</div>
 
       {/* Мини-индикаторы поддонов */}
-      <div className="flex gap-1 mt-2">
-        {rack.trays.map((tray) => (
-          <div
-            key={tray.id}
-            className={cn(
-              'w-2 h-2 rounded-full',
-              getTrayColor(tray.status)
-            )}
-            title={`Поддон ${tray.position}: ${tray.status}`}
-          />
-        ))}
+      <div className="flex gap-1 mt-2 flex-wrap">
+        {rack.trays.map((tray) => {
+          const crop = tray.crop ? crops.find(c => c.id === tray.crop.cropId) : null;
+          const showIcon = tray.status === 'growing' && crop;
+
+          return (
+            <div
+              key={tray.id}
+              className={cn(
+                'flex items-center justify-center rounded-full',
+                showIcon ? 'w-4 h-4 text-xs' : 'w-2 h-2',
+                getTrayColor(tray.status)
+              )}
+              title={`Поддон ${tray.position}: ${tray.status}${crop ? ` (${crop.name})` : ''}`}
+            >
+              {showIcon && (
+                <span className="text-xs leading-none">{crop.icon}</span>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {rack.hasProblems && (

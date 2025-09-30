@@ -31,7 +31,8 @@ export default function GrowthManagement() {
     selectedRows: new Set(),
     selectedRacks: new Set(),
     selectedTrays: new Set(),
-    mode: 'none'
+    mode: 'single',
+    contextMenuOpen: false
   });
   const [changesDraft, setChangesDraft] = useState<ChangesDraft>({
     selectedItems: { rows: [], racks: [], trays: [] },
@@ -93,7 +94,8 @@ export default function GrowthManagement() {
       selectedRows: new Set(),
       selectedRacks: new Set(),
       selectedTrays: new Set(),
-      mode: 'none'
+      mode: 'single',
+      contextMenuOpen: false
     });
   }, []);
 
@@ -142,7 +144,8 @@ export default function GrowthManagement() {
       selectedRows: new Set(),
       selectedRacks: new Set(),
       selectedTrays: new Set(trayIds),
-      mode: 'none'
+      mode: 'multi',
+      contextMenuOpen: false
     });
     
     const selectedItems = {
@@ -226,9 +229,10 @@ export default function GrowthManagement() {
     // Сбрасываем выделение
     setSelectionState({
       selectedRows: new Set(),
-      selectedRacks: new Set(), 
+      selectedRacks: new Set(),
       selectedTrays: new Set(),
-      mode: 'none'
+      mode: 'single',
+      contextMenuOpen: false
     });
   }, [selectionState]);
 

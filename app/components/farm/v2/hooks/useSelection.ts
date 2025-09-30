@@ -47,12 +47,27 @@ export function useSelection() {
   }, []);
 
   const selectRow = useCallback((rowId: string, racksInRow: string[]) => {
-    setState((prev) => ({
-      ...prev,
-      selectedRows: new Set([rowId]),
-      selectedRacks: new Set(racksInRow),
-      mode: 'multi'
-    }));
+    setState((prev) => {
+      const newSelectedRows = new Set(prev.selectedRows);
+      const newSelectedRacks = new Set(prev.selectedRacks);
+
+      if (newSelectedRows.has(rowId)) {
+        // Если ряд уже выбран, убираем его и все его стойки
+        newSelectedRows.delete(rowId);
+        racksInRow.forEach(rackId => newSelectedRacks.delete(rackId));
+      } else {
+        // Если ряд не выбран, добавляем его и все его стойки
+        newSelectedRows.add(rowId);
+        racksInRow.forEach(rackId => newSelectedRacks.add(rackId));
+      }
+
+      return {
+        ...prev,
+        selectedRows: newSelectedRows,
+        selectedRacks: newSelectedRacks,
+        mode: newSelectedRows.size > 0 || newSelectedRacks.size > 0 ? 'multi' : 'single'
+      };
+    });
   }, []);
 
   const clearSelection = useCallback(() => {

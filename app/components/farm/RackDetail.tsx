@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ContainerStatus, TrayStatus } from "@/types/farming";
+import { ContainerStatus, LegacyTray } from "@/types/farming";
 import { mockCrops } from "@/data/mockData";
 import { Sprout, Calendar, TrendingUp, Droplets } from 'lucide-react';
 
@@ -83,7 +83,7 @@ export default function RackDetail({ rackId, containerData, onTrayClick, onPlant
     onTrayClick(trayId);
   }, [onTrayClick]);
 
-  const getTrayStatusColor = (tray: TrayStatus) => {
+  const getTrayStatusColor = (tray: LegacyTray) => {
     switch (tray.status) {
       case 'empty': return 'bg-gray-100 border-gray-300';
       case 'planned': return 'bg-blue-100 border-blue-400 border-dashed';
@@ -94,7 +94,7 @@ export default function RackDetail({ rackId, containerData, onTrayClick, onPlant
     }
   };
 
-  const getTrayDisplayInfo = (tray: TrayStatus) => {
+  const getTrayDisplayInfo = (tray: LegacyTray) => {
     if (!tray.crop) return { crop: null, stage: 'Пусто', days: '' };
     
     const crop = mockCrops.find(c => c.id === tray.crop!.cropId);

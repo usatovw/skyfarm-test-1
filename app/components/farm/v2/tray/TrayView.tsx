@@ -5,20 +5,47 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { getCropById, getCurrentGrowthStage } from '@/data/cropsData';
-import { ArrowLeft, Calendar, Sprout, TrendingUp, ChevronRight, Droplets, Sun, Thermometer } from 'lucide-react';
+import { getCropById, getCurrentGrowthStage, crops } from '@/data/cropsData';
+import { ArrowLeft, Calendar, Sprout, TrendingUp, ChevronRight, Droplets, Sun, Thermometer, Scissors, Trash2, StopCircle, Undo2 } from 'lucide-react';
+import StopGrowingConfirmation from '../../StopGrowingConfirmation';
+import { useState } from 'react';
 
 interface TrayViewProps {
   tray: Tray;
   onBack: () => void;
   onStageChange?: () => void;
+  onPlant?: () => void;
+  onHarvest?: () => void;
+  onClear?: () => void;
+  onStop?: () => void;
+  onCancelStop?: () => void;
+  containerData?: any; // Container data for confirmation modal
 }
 
-export function TrayView({ tray, onBack, onStageChange }: TrayViewProps) {
+export function TrayView({ tray, onBack, onStageChange, onPlant, onHarvest, onClear, onStop, onCancelStop, containerData }: TrayViewProps) {
+  const [showStopConfirmation, setShowStopConfirmation] = useState(false);
+
   const crop = tray.crop ? getCropById(tray.crop.cropId) : null;
   const stageInfo = crop && tray.crop
     ? getCurrentGrowthStage(crop, tray.crop.totalDaysGrowing)
     : null;
+
+  const handleStopWithConfirmation = () => {
+    if (!['empty', 'harvested'].includes(tray.status)) {
+      setShowStopConfirmation(true);
+    }
+  };
+
+  const handleConfirmStop = (selectedTrayIds: string[]) => {
+    if (onStop && selectedTrayIds.includes(tray.id)) {
+      onStop();
+    }
+    setShowStopConfirmation(false);
+  };
+
+  const handleCancelStop = () => {
+    setShowStopConfirmation(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -35,6 +62,53 @@ export function TrayView({ tray, onBack, onStageChange }: TrayViewProps) {
         </div>
       </div>
 
+      {/* Действия с поддоном */}
+      <Card className="p-4">
+        <div className="flex flex-wrap gap-2">
+          {tray.status === 'empty' && onPlant && (
+            <Button onClick={onPlant} className="flex-1 min-w-32">
+              <Sprout className="mr-2 h-4 w-4" />
+              Засадить
+            </Button>
+          )}
+
+          {tray.status === 'planned' && onClear && (
+            <Button onClick={onClear} variant="outline" className="flex-1 min-w-32">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Очистить
+            </Button>
+          )}
+
+          {tray.status === 'growing' && onStop && (
+            <Button onClick={handleStopWithConfirmation} variant="destructive" className="flex-1 min-w-40">
+              <StopCircle className="mr-2 h-4 w-4" />
+              Прекратить выращивание
+            </Button>
+          )}
+
+          {tray.status === 'ready' && onHarvest && (
+            <Button onClick={onHarvest} className="flex-1 min-w-32">
+              <Scissors className="mr-2 h-4 w-4" />
+              Собрать урожай
+            </Button>
+          )}
+
+          {tray.status === 'harvested' && onClear && (
+            <Button onClick={onClear} variant="outline" className="flex-1 min-w-32">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Очистить поддон
+            </Button>
+          )}
+
+          {tray.status === 'stop_pending' && onCancelStop && (
+            <Button onClick={onCancelStop} variant="outline" className="flex-1 min-w-40">
+              <Undo2 className="mr-2 h-4 w-4" />
+              Отменить прекращение
+            </Button>
+          )}
+        </div>
+      </Card>
+
       {/* Основная информация */}
       {tray.status === 'empty' ? (
         <Card className="p-8 text-center">
@@ -50,7 +124,18 @@ export function TrayView({ tray, onBack, onStageChange }: TrayViewProps) {
           <div className="space-y-6">
             <Card className="p-6">
               <div className="flex items-center gap-4 mb-6">
-                <div className="text-6xl">{crop.icon}</div>
+                {(() => {
+                  const cropData = crops.find(c => c.id === tray.crop?.cropId);
+                  return cropData?.image ? (
+                    <img
+                      src={cropData.image}
+                      alt={cropData.name}
+                      className="w-20 h-20 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="text-6xl">{crop?.icon}</div>
+                  );
+                })()}
                 <div className="flex-1">
                   <h3 className="text-2xl font-bold">{crop.name}</h3>
                   <Badge className="mt-2" style={{ backgroundColor: crop.color }}>
@@ -246,6 +331,18 @@ export function TrayView({ tray, onBack, onStageChange }: TrayViewProps) {
           </div>
         </div>
       ) : null}
+
+      {/* Модалка подтверждения остановки */}
+      {containerData && (
+        <StopGrowingConfirmation
+          isOpen={showStopConfirmation}
+          onClose={handleCancelStop}
+          onConfirm={handleConfirmStop}
+          targetIds={[tray.id]}
+          targetType="tray"
+          containerData={containerData}
+        />
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { MultiSelectPanel } from '../actions/MultiSelectPanel';
 import { ContextMenu, getRackContextMenuItems } from '../actions/ContextMenu';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import StopGrowingConfirmation from '../../StopGrowingConfirmation';
 
 interface ContainerViewProps {
   container: Container;
@@ -17,6 +18,9 @@ interface ContainerViewProps {
   changesCount?: number;
   selection: ReturnType<typeof import('../hooks/useSelection').useSelection>;
   draftActions: ReturnType<typeof import('../hooks/useDraftActions').useDraftActions>;
+  onInstantClearPlanned?: (targetIds: string[], targetType: 'rack' | 'tray') => void;
+  onInstantCancelStop?: (targetIds: string[], targetType: 'rack' | 'tray') => void;
+  onInstantStopPlanning?: (affectedTrays: string[]) => void;
 }
 
 export function ContainerView({
@@ -27,16 +31,50 @@ export function ContainerView({
   hasChanges,
   changesCount,
   selection,
-  draftActions
+  draftActions,
+  onInstantClearPlanned,
+  onInstantCancelStop,
+  onInstantStopPlanning
 }: ContainerViewProps) {
   const [contextMenu, setContextMenu] = useState<{
     rackId: string;
     position: { x: number; y: number };
   } | null>(null);
 
+  // Состояние для модалки массового подтверждения прекращения выращивания
+  const [showMassStopConfirmation, setShowMassStopConfirmation] = useState(false);
+  const [pendingStopAction, setPendingStopAction] = useState<{
+    selectedRackIds: string[];
+    affectedTrays: string[];
+  } | null>(null);
+
   const handleSelectRow = (row: Row) => {
     const rackIds = row.racks.map(r => r.id);
     selection.selectRow(row.id, rackIds);
+  };
+
+  // Обработчики для модалки массового подтверждения
+  const handleMassStopConfirm = (selectedTrayIds: string[]) => {
+    if (pendingStopAction) {
+      // Добавляем действие в черновик только для выбранных лотков
+      draftActions.addAction({
+        type: 'stop_growing',
+        targetType: 'rack',
+        targetIds: pendingStopAction.selectedRackIds,
+        affectedTrays: selectedTrayIds
+      });
+
+      // МГНОВЕННО изменяем статусы на 'stop_pending' только для выбранных лотков
+      onInstantStopPlanning?.(selectedTrayIds);
+    }
+
+    setShowMassStopConfirmation(false);
+    setPendingStopAction(null);
+  };
+
+  const handleMassStopCancel = () => {
+    setShowMassStopConfirmation(false);
+    setPendingStopAction(null);
   };
 
   const handleRackShortPress = (rackId: string) => {
@@ -133,9 +171,64 @@ export function ContainerView({
         <MultiSelectPanel
           selectedCount={selection.selectedRacks.size}
           onPlant={() => onPlantClick && onPlantClick()}
-          onClear={() => console.log('Clear')}
+          onClear={() => {
+            // Очистка запланированных посадок для выбранных стоек
+            const selectedRackIds = Array.from(selection.selectedRacks);
+            onInstantClearPlanned?.(selectedRackIds, 'rack');
+            selection.clearSelection();
+          }}
           onCancel={selection.clearSelection}
-          onMore={() => console.log('More')}
+          onHarvest={() => {
+            const selectedRackIds = Array.from(selection.selectedRacks);
+            // Вычисляем затронутые поддоны для выбранных стоек
+            const affectedTrays: string[] = [];
+            container.rows.forEach(row => {
+              row.racks.forEach(rack => {
+                if (selectedRackIds.includes(rack.id)) {
+                  rack.trays.forEach(tray => {
+                    if (tray.status === 'ready') {
+                      affectedTrays.push(tray.id);
+                    }
+                  });
+                }
+              });
+            });
+            draftActions.addAction({
+              type: 'harvest',
+              targetType: 'rack',
+              targetIds: selectedRackIds,
+              affectedTrays
+            });
+          }}
+          onStopGrowing={() => {
+            const selectedRackIds = Array.from(selection.selectedRacks);
+            console.log('🛑 MultiSelectPanel: Выбранные стойки:', selectedRackIds);
+
+            // Вычисляем затронутые поддоны для выбранных стоек
+            const affectedTrays: string[] = [];
+            container.rows.forEach(row => {
+              row.racks.forEach(rack => {
+                if (selectedRackIds.includes(rack.id)) {
+                  rack.trays.forEach(tray => {
+                    if (!['empty', 'harvested'].includes(tray.status)) {
+                      console.log('🛑 Найден поддон для остановки:', tray.id, 'статус:', tray.status, 'в стойке', rack.id);
+                      affectedTrays.push(tray.id);
+                    }
+                  });
+                }
+              });
+            });
+
+            console.log('🛑 MultiSelectPanel: Затронутые поддоны:', affectedTrays);
+
+            // ПОКАЗЫВАЕМ МОДАЛКУ ПОДТВЕРЖДЕНИЯ вместо прямого выполнения
+            setPendingStopAction({ selectedRackIds, affectedTrays });
+            setShowMassStopConfirmation(true);
+          }}
+          onCancelStop={() => {
+            const selectedRackIds = Array.from(selection.selectedRacks);
+            onInstantCancelStop?.(selectedRackIds, 'rack');
+          }}
         />
       )}
 
@@ -153,15 +246,77 @@ export function ContainerView({
               selection.enterMultiMode();
               selection.toggleRack(contextMenu.rackId);
             },
-            () => onPlantClick && onPlantClick(),
-            () => console.log('Harvest'),
-            () => console.log('Clear'),
-            () => console.log('Stop'),
-            () => console.log('Cancel stop')
+            () => {
+              // Выбираем стойку в режиме мультивыбора перед открытием селектора культур
+              selection.enterMultiMode();
+              selection.toggleRack(contextMenu.rackId);
+              onPlantClick && onPlantClick();
+            },
+            () => {
+              const selectedRackIds = [contextMenu.rackId];
+              // Вычисляем затронутые поддоны для контекстной стойки
+              const affectedTrays: string[] = [];
+              const rack = container.rows.flatMap(r => r.racks).find(r => r.id === contextMenu.rackId);
+              if (rack) {
+                rack.trays.forEach(tray => {
+                  if (tray.status === 'ready') {
+                    affectedTrays.push(tray.id);
+                  }
+                });
+              }
+              draftActions.addAction({
+                type: 'harvest',
+                targetType: 'rack',
+                targetIds: selectedRackIds,
+                affectedTrays
+              });
+            },
+            () => {
+              const selectedRackIds = [contextMenu.rackId];
+              onInstantClearPlanned?.(selectedRackIds, 'rack');
+            },
+            () => {
+              const selectedRackIds = [contextMenu.rackId];
+              // Вычисляем затронутые поддоны для контекстной стойки
+              const affectedTrays: string[] = [];
+              const rack = container.rows.flatMap(r => r.racks).find(r => r.id === contextMenu.rackId);
+              if (rack) {
+                rack.trays.forEach(tray => {
+                  if (!['empty', 'harvested'].includes(tray.status)) {
+                    affectedTrays.push(tray.id);
+                  }
+                });
+              }
+
+              // Показываем модалку подтверждения
+              setPendingStopAction({
+                selectedRackIds,
+                affectedTrays
+              });
+              setShowMassStopConfirmation(true);
+              setContextMenu(null); // Закрываем контекстное меню
+            },
+            () => {
+              const selectedRackIds = [contextMenu.rackId];
+              onInstantCancelStop?.(selectedRackIds, 'rack');
+            }
           )}
           onClose={() => setContextMenu(null)}
         />
       )}
+
+      {/* Модалка подтверждения массового прекращения выращивания */}
+      {pendingStopAction && (
+        <StopGrowingConfirmation
+          isOpen={showMassStopConfirmation}
+          onClose={handleMassStopCancel}
+          onConfirm={handleMassStopConfirm}
+          targetIds={pendingStopAction.selectedRackIds}
+          targetType="rack"
+          containerData={container}
+        />
+      )}
+
     </div>
   );
 }

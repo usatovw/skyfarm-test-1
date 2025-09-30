@@ -19,27 +19,64 @@ interface ContextMenuProps {
 }
 
 export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
+  // Размеры меню
+  const menuWidth = 300;
+  const itemHeight = 44; // высота кнопки + отступы
+  const menuPadding = 16; // отступы контейнера
+  const menuHeight = items.length * itemHeight + menuPadding;
+
+  // Размеры окна
+  const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 768;
+
+  // Отступы от краев экрана
+  const margin = 8;
+
+  // Вычисляем позицию с учетом границ экрана
+  let finalX = position.x;
+  let finalY = position.y;
+
+  // Проверяем, не выходит ли меню за правую границу
+  if (finalX + menuWidth > windowWidth - margin) {
+    finalX = Math.max(margin, position.x - menuWidth); // Показываем слева от курсора
+  }
+
+  // Проверяем, не выходит ли меню за нижнюю границу
+  if (finalY + menuHeight > windowHeight - margin) {
+    finalY = Math.max(margin, position.y - menuHeight); // Показываем сверху от курсора
+  }
+
+  // Убеждаемся, что меню помещается в экран
+  finalX = Math.max(margin, Math.min(finalX, windowWidth - menuWidth - margin));
+  finalY = Math.max(margin, Math.min(finalY, windowHeight - menuHeight - margin));
+
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <Card
-        className="fixed z-50 p-2 min-w-[280px] shadow-lg"
-        style={{ top: position.y, left: position.x }}
+        className="fixed z-[9999] p-2 shadow-lg min-w-0 max-w-xs border bg-background"
+        style={{
+          top: finalY,
+          left: finalX,
+          width: menuWidth,
+          maxHeight: 'calc(100vh - 16px)', // Предотвращаем выход за границы экрана
+          overflowY: 'auto' // Добавляем скролл при необходимости
+        }}
       >
-        <div className="space-y-1">
+        <div className="space-y-1 flex flex-col">
           {items.map((item) => (
             <Button
               key={item.id}
               variant="ghost"
-              className="w-full justify-start"
+              className="w-full justify-start px-3 py-2 h-auto min-w-0 text-left"
               disabled={item.disabled}
               onClick={() => {
                 item.onClick();
                 onClose();
               }}
             >
-              <span className="mr-3">{item.icon}</span>
-              {item.label}
+              <span className="mr-3 flex-shrink-0">{item.icon}</span>
+              <span className="flex-1 break-words">{item.label}</span>
             </Button>
           ))}
         </div>
@@ -60,7 +97,7 @@ export function getRackContextMenuItems(
 ): ContextMenuItem[] {
   const hasEmptyTrays = rack.trays.some((t: any) => t.status === 'empty');
   const hasPlannedTrays = rack.trays.some((t: any) => t.status === 'planned');
-  const hasGrowingTrays = rack.trays.some((t: any) => t.status === 'growing');
+  const hasGrowingTrays = rack.trays.some((t: any) => !['empty', 'harvested'].includes(t.status));
   const hasReadyTrays = rack.trays.some((t: any) => t.status === 'ready');
   const hasStopPendingTrays = rack.trays.some((t: any) => t.status === 'stop_pending');
 
@@ -120,6 +157,7 @@ export function getRackContextMenuItems(
 export function getTrayContextMenuItems(
   tray: any,
   onEnter: (() => void) | null,
+  onSelect: (() => void) | null,
   onPlant: () => void,
   onHarvest: () => void,
   onClear: () => void,
@@ -136,6 +174,17 @@ export function getTrayContextMenuItems(
       icon: <ArrowRight className="h-4 w-4" />,
       disabled: false,
       onClick: onEnter
+    });
+  }
+
+  // Кнопка "Выбрать" показывается только если передан onSelect
+  if (onSelect) {
+    items.push({
+      id: 'select',
+      label: 'Выбрать',
+      icon: <Check className="h-4 w-4" />,
+      disabled: false,
+      onClick: onSelect
     });
   }
 
@@ -166,7 +215,7 @@ export function getTrayContextMenuItems(
       id: 'stop',
       label: 'Прекратить выращивание',
       icon: <StopCircle className="h-4 w-4" />,
-      disabled: tray.status !== 'growing',
+      disabled: ['empty', 'harvested', 'planned'].includes(tray.status),
       onClick: onStop
     },
     {

@@ -11,7 +11,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger
 } from "@/components/ui/context-menu";
-import { ContainerStatus, SelectionState, RackStatus } from "@/types/farming";
+import { ContainerStatus, SelectionState, LegacyRack } from "@/types/farming";
 import { Sprout, Eye, Trash2, Grid3X3, AlertTriangle } from 'lucide-react';
 
 interface ContainerGridProps {
@@ -38,7 +38,7 @@ export default function ContainerGrid({
 
   const handleRackSelect = useCallback((rackId: string, multi = false) => {
     const newSelection = { ...selectionState };
-    
+
     if (multi) {
       if (newSelection.selectedRacks.has(rackId)) {
         newSelection.selectedRacks.delete(rackId);
@@ -46,18 +46,20 @@ export default function ContainerGrid({
         newSelection.selectedRacks.add(rackId);
       }
     } else {
-      newSelection.selectedRacks = new Set([rackId]);
-      newSelection.selectedRows.clear();
-      newSelection.selectedTrays.clear();
+      if (newSelection.selectedRacks.has(rackId)) {
+        newSelection.selectedRacks.delete(rackId);
+      } else {
+        newSelection.selectedRacks.add(rackId);
+      }
     }
-    
+
     onSelectionChange(newSelection);
   }, [selectionState, onSelectionChange]);
 
   const handleRowSelect = useCallback((rowId: string) => {
     const newSelection = { ...selectionState };
     const row = containerData.rows.find(r => r.id === rowId);
-    
+
     if (row) {
       if (newSelection.selectedRows.has(rowId)) {
         // Убираем выделение с ряда и всех его стоек
@@ -66,14 +68,14 @@ export default function ContainerGrid({
           newSelection.selectedRacks.delete(rack.id);
         });
       } else {
-        // Выделяем весь ряд
+        // Выделяем весь ряд (добавляем к существующему выбору)
         newSelection.selectedRows.add(rowId);
         row.racks.forEach(rack => {
           newSelection.selectedRacks.add(rack.id);
         });
       }
     }
-    
+
     onSelectionChange(newSelection);
   }, [selectionState, onSelectionChange, containerData]);
 
@@ -81,7 +83,7 @@ export default function ContainerGrid({
     onRackClick(rackId);
   }, [onRackClick]);
 
-  const getOccupancyColor = (rack: RackStatus) => {
+  const getOccupancyColor = (rack: LegacyRack) => {
     const percentage = (rack.occupiedTrays / rack.totalTrays) * 100;
     if (percentage === 0) return 'bg-gray-100';
     if (percentage < 50) return 'bg-yellow-100';
@@ -89,7 +91,7 @@ export default function ContainerGrid({
     return 'bg-green-200';
   };
 
-  const getOccupancyBorderColor = (rack: RackStatus) => {
+  const getOccupancyBorderColor = (rack: LegacyRack) => {
     const percentage = (rack.occupiedTrays / rack.totalTrays) * 100;
     if (percentage === 0) return 'border-gray-300';
     if (percentage < 50) return 'border-yellow-400';

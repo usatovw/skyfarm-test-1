@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Thermometer, Droplets, Sun, Zap, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Thermometer, Droplets, Sun, Zap, TrendingUp } from 'lucide-react';
 
 interface MetricData {
   label: string;
@@ -51,7 +51,6 @@ export default function FarmDashboard() {
     }
   ]);
 
-  const [alertsCount, setAlertsCount] = useState(3);
   const [activeContainers, setActiveContainers] = useState(12);
   const [totalYield, setTotalYield] = useState(847);
 
@@ -88,7 +87,7 @@ export default function FarmDashboard() {
   return (
     <div className="space-y-6">
       {/* Статистика фермы */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Активные контейнеры</CardTitle>
@@ -111,16 +110,6 @@ export default function FarmDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Уведомления</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{alertsCount}</div>
-            <p className="text-xs text-muted-foreground">требуют внимания</p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Метрики окружающей среды */}

@@ -4,7 +4,7 @@ import { Tray } from '@/types/farming';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { getCropById } from '@/data/cropsData';
+import { getCropById, crops } from '@/data/cropsData';
 import { Calendar, Sprout, TrendingUp, Scissors, Trash2, Undo2, StopCircle, ArrowRight } from 'lucide-react';
 
 interface TrayPreviewProps {
@@ -15,9 +15,10 @@ interface TrayPreviewProps {
   onCancelStop?: () => void;
   onStop?: () => void;
   onEnterTray?: () => void;
+  containerData?: any; // Container data for confirmation modal
 }
 
-export function TrayPreview({ tray, onPlant, onHarvest, onClear, onCancelStop, onStop, onEnterTray }: TrayPreviewProps) {
+export function TrayPreview({ tray, onPlant, onHarvest, onClear, onCancelStop, onStop, onEnterTray, containerData }: TrayPreviewProps) {
   if (!tray) {
     return (
       <Card className="p-8 text-center">
@@ -95,7 +96,18 @@ export function TrayPreview({ tray, onPlant, onHarvest, onClear, onCancelStop, o
     return (
       <Card className="p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="text-4xl">{crop?.icon}</div>
+          {(() => {
+            const cropData = crops.find(c => c.id === tray.crop?.cropId);
+            return cropData?.image ? (
+              <img
+                src={cropData.image}
+                alt={cropData.name}
+                className="w-16 h-16 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="text-4xl">{crop?.icon}</div>
+            );
+          })()}
           <div className="flex-1">
             <div className="text-xl font-bold">{crop?.name}</div>
             <div className="text-sm text-green-600">Растет</div>
@@ -173,7 +185,18 @@ export function TrayPreview({ tray, onPlant, onHarvest, onClear, onCancelStop, o
     return (
       <Card className="p-6 space-y-4 bg-emerald-50">
         <div className="flex items-center gap-3">
-          <div className="text-4xl">{crop?.icon}</div>
+          {(() => {
+            const cropData = crops.find(c => c.id === tray.crop?.cropId);
+            return cropData?.image ? (
+              <img
+                src={cropData.image}
+                alt={cropData.name}
+                className="w-16 h-16 rounded-lg object-cover border-2 border-emerald-300"
+              />
+            ) : (
+              <div className="text-4xl">{crop?.icon}</div>
+            );
+          })()}
           <div>
             <div className="text-xl font-bold">{crop?.name}</div>
             <div className="text-sm text-emerald-600 font-semibold">✓ Готов к сбору</div>
@@ -199,6 +222,12 @@ export function TrayPreview({ tray, onPlant, onHarvest, onClear, onCancelStop, o
             <Button onClick={onHarvest} className="w-full">
               <Scissors className="mr-2 h-4 w-4" />
               Собрать урожай
+            </Button>
+          )}
+          {onStop && (
+            <Button onClick={onStop} variant="destructive" className="w-full">
+              <StopCircle className="mr-2 h-4 w-4" />
+              Прекратить выращивание
             </Button>
           )}
           {onEnterTray && (

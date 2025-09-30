@@ -4,6 +4,7 @@ import { Tray, TrayStatus } from '@/types/farming';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useLongPress } from '../hooks/useLongPress';
+import { crops } from '@/data/cropsData';
 
 interface TrayCardProps {
   tray: Tray;
@@ -56,12 +57,28 @@ export function TrayCard({ tray, isSelected, onClick, onLongPress, mode = 'singl
           <div className="font-bold">Поддон {tray.position}</div>
           <div className="text-sm">{STATUS_LABELS[tray.status]}</div>
         </div>
-        {tray.crop && (
+        {tray.crop && tray.status === 'growing' && (
+          <div className="relative">
+            {(() => {
+              const crop = crops.find(c => c.id === tray.crop?.cropId);
+              return crop?.image ? (
+                <img
+                  src={crop.image}
+                  alt={crop.name}
+                  className="w-12 h-12 rounded-md object-cover"
+                />
+              ) : (
+                <div className="text-xl">{crop?.icon || '🌱'}</div>
+              );
+            })()}
+          </div>
+        )}
+        {tray.crop && tray.status !== 'growing' && (
           <div className="text-xl">
-            {tray.crop.cropId === 'arugula' && '🌿'}
-            {tray.crop.cropId === 'lollo_rossa' && '🥬'}
-            {tray.crop.cropId === 'romano' && '🥬'}
-            {tray.crop.cropId === 'endive' && '🥬'}
+            {(() => {
+              const crop = crops.find(c => c.id === tray.crop?.cropId);
+              return crop?.icon || '🌱';
+            })()}
           </div>
         )}
       </div>
